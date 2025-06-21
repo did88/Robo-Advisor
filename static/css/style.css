@@ -13,7 +13,7 @@ body {
     width: 100%;
     max-width: 1000px;
     display: grid;
-    grid-template-columns: 1fr 300px;
+    grid-template-columns: 1fr 320px;
     gap: 20px;
     height: 90vh;
 }
@@ -51,9 +51,10 @@ body {
     padding: 20px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
     height: 100%;
+    overflow-y: auto;
 }
 
 .message {
@@ -137,9 +138,47 @@ body {
     animation-delay: 0.4s;
 }
 
-#stockChart {
-    width: 100% !important;
-    height: 250px !important;
+
+.metric-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.metric-card {
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+    border: 2px solid transparent;
+}
+
+.metric-title {
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.metric-value {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.metric-comment {
+    margin-top: 4px;
+    font-size: 12px;
+}
+
+.metric-card.good {
+    border-color: #2ecc71;
+}
+
+.metric-card.neutral {
+    border-color: #f1c40f;
+}
+
+.metric-card.bad {
+    border-color: #e74c3c;
 }
 
 @keyframes blink {

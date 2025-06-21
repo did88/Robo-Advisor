@@ -18,16 +18,19 @@ def init_db():
     """Create table and seed basic data if empty"""
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
+    conn.execute("DROP TABLE IF EXISTS stocks")
     conn.execute(
         """
-        CREATE TABLE IF NOT EXISTS stocks (
+        CREATE TABLE stocks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL UNIQUE,
             sector TEXT,
             per REAL,
             roe TEXT,
             debt_ratio TEXT,
-            note TEXT
+            sales TEXT,
+            market_cap TEXT,
+            risk_level TEXT
         )
         """
     )
@@ -36,31 +39,37 @@ def init_db():
         sample = [
             (
                 "삼성전자",
-                "IT",
-                10,
+                "반도체",
+                10.5,
                 "15%",
-                "20%",
-                "반도체 수요 회복 예상",
+                "40%",
+                "280조원",
+                "500조원",
+                "낮음",
             ),
             (
                 "LG화학",
                 "화학/2차전지",
-                15,
+                15.2,
                 "12%",
                 "30%",
-                "배터리 사업 성장",
+                "50조원",
+                "70조원",
+                "중간",
             ),
             (
                 "NAVER",
                 "인터넷",
-                25,
+                25.3,
                 "20%",
                 "10%",
-                "플랫폼 사업 확대",
+                "8조원",
+                "40조원",
+                "높음",
             ),
         ]
         conn.executemany(
-            "INSERT INTO stocks (name, sector, per, roe, debt_ratio, note) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO stocks (name, sector, per, roe, debt_ratio, sales, market_cap, risk_level) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             sample,
         )
         conn.commit()
@@ -111,12 +120,12 @@ def build_stock_info(names):
     conn = get_db_connection()
     for name in names:
         row = conn.execute(
-            "SELECT sector, per, roe, debt_ratio, note FROM stocks WHERE name = ?",
+            "SELECT sector, per, roe, debt_ratio, sales, market_cap, risk_level FROM stocks WHERE name = ?",
             (name,),
         ).fetchone()
         if row:
             info_lines.append(
-                f"{name}: 산업군: {row['sector']}, PER: {row['per']}, ROE: {row['roe']}, 부채비율: {row['debt_ratio']}, 참고사항: {row['note']}"
+                f"{name}: 산업군: {row['sector']}, PER: {row['per']}, ROE: {row['roe']}, 부채비율: {row['debt_ratio']}, 매출액: {row['sales']}, 시가총액: {row['market_cap']}, 위험도: {row['risk_level']}"
             )
     conn.close()
     return "\n".join(info_lines)
@@ -134,10 +143,14 @@ def chat():
         return jsonify(
             {
                 "reply": "메시지를 입력해주세요.",
-                "stock_name": None,
+                "name": None,
                 "per": None,
                 "roe": None,
                 "debt_ratio": None,
+                "sales": None,
+                "market_cap": None,
+                "sector": None,
+                "risk_level": None,
             }
         )
 
@@ -159,19 +172,23 @@ def chat():
     ]
 
     # 기본 지표 값
-    per = roe = debt_ratio = None
+    per = roe = debt_ratio = sales = market_cap = sector = risk_level = None
     stock_name = stock_names[0] if stock_names else None
     if stock_name:
         conn = get_db_connection()
         row = conn.execute(
-            "SELECT per, roe, debt_ratio FROM stocks WHERE name = ?",
+            "SELECT sector, per, roe, debt_ratio, sales, market_cap, risk_level FROM stocks WHERE name = ?",
             (stock_name,),
         ).fetchone()
         conn.close()
         if row:
+            sector = row["sector"]
             per = row["per"]
             roe = row["roe"]
             debt_ratio = row["debt_ratio"]
+            sales = row["sales"]
+            market_cap = row["market_cap"]
+            risk_level = row["risk_level"]
 
     try:
         response = client.chat.completions.create(
@@ -186,10 +203,14 @@ def chat():
     return jsonify(
         {
             "reply": answer,
-            "stock_name": stock_name,
+            "name": stock_name,
             "per": per,
             "roe": roe,
             "debt_ratio": debt_ratio,
+            "sales": sales,
+            "market_cap": market_cap,
+            "sector": sector,
+            "risk_level": risk_level,
         }
     )
 

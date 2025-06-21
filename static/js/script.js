@@ -1,41 +1,70 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', () => {
     const input = document.getElementById('userInput');
     const sendBtn = document.getElementById('sendBtn');
     const chatHistory = document.getElementById('chatHistory');
-    const chartTitle = document.getElementById('chartTitle');
-    let chart;
+    const infoTitle = document.getElementById('infoTitle');
+    const metricContainer = document.getElementById('metricContainer');
 
-    function updateChart(info) {
-        if (!info || !info.stock_name) {
-            chartTitle.textContent = '해당 종목의 재무 지표를 찾을 수 없습니다';
-            if (chart) { chart.destroy(); chart = null; }
+    function interpret(metric, value) {
+        let val = parseFloat(String(value).replace(/[^0-9.-]/g, ''));
+        let comment = '-';
+        let status = 'neutral';
+        switch (metric) {
+            case 'per':
+                if (val <= 15) { status = 'good'; comment = '저평가'; }
+                else if (val <= 25) { status = 'neutral'; comment = '보통'; }
+                else { status = 'bad'; comment = '고평가'; }
+                break;
+            case 'roe':
+                if (val >= 15) { status = 'good'; comment = '우수'; }
+                else if (val >= 10) { status = 'neutral'; comment = '양호'; }
+                else { status = 'bad'; comment = '낮음'; }
+                break;
+            case 'debt_ratio':
+                if (val < 50) { status = 'good'; comment = '건전'; }
+                else if (val < 100) { status = 'neutral'; comment = '주의'; }
+                else { status = 'bad'; comment = '위험'; }
+                break;
+            case 'risk_level':
+                if (value === '낮음') { status = 'good'; comment = '안정적'; }
+                else if (value === '중간') { status = 'neutral'; comment = '보통'; }
+                else { status = 'bad'; comment = '높음'; }
+                break;
+            case 'sales':
+            case 'market_cap':
+                if (!isNaN(val) && val >= 100) { status = 'good'; comment = '대형'; }
+                else if (!isNaN(val) && val >= 50) { status = 'neutral'; comment = '중간'; }
+                else { status = 'bad'; comment = '소형'; }
+                break;
+        }
+        return { comment, status };
+    }
+
+    function updateMetrics(info) {
+        metricContainer.innerHTML = '';
+        if (!info || !info.name) {
+            infoTitle.textContent = '종목을 선택하면 지표가 표시됩니다.';
             return;
         }
-        chartTitle.textContent = info.stock_name + ' 주요 지표';
-        const ctx = document.getElementById('stockChart').getContext('2d');
-        const per = parseFloat(info.per);
-        const roe = parseFloat(String(info.roe).replace('%', ''));
-        const debt = parseFloat(String(info.debt_ratio).replace('%', ''));
-        const values = [per, roe, debt];
-        const colors = [
-            per > 20 ? '#e74c3c' : '#4a76a8',
-            roe >= 15 ? '#2ecc71' : '#f1c40f',
-            debt > 50 ? '#e74c3c' : '#2ecc71'
+        infoTitle.textContent = `${info.name} (${info.sector || ''})`;
+        const metrics = [
+            { key: 'per', label: 'PER', icon: '📈' },
+            { key: 'roe', label: 'ROE', icon: '💸' },
+            { key: 'debt_ratio', label: '부채비율', icon: '🏦' },
+            { key: 'sales', label: '매출액', icon: '💰' },
+            { key: 'market_cap', label: '시가총액', icon: '🏢' },
+            { key: 'risk_level', label: '위험도', icon: '⚠️' },
         ];
-        if (chart) chart.destroy();
-        chart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['PER', 'ROE', '부채비율'],
-                datasets: [{
-                    data: values,
-                    backgroundColor: colors
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: { y: { beginAtZero: true } }
-            }
+        metrics.forEach(m => {
+            const value = info[m.key];
+            if (value == null) return;
+            const { comment, status } = interpret(m.key, value);
+            const card = document.createElement('div');
+            card.className = `metric-card ${status}`;
+            card.innerHTML = `<div class="metric-title">${m.icon} ${m.label}</div>` +
+                             `<div class="metric-value">${value}</div>` +
+                             `<div class="metric-comment">${comment}</div>`;
+            metricContainer.appendChild(card);
         });
     }
 
@@ -72,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             loader.remove();
             addMessage(data.reply, 'bot');
-            updateChart(data);
+            updateMetrics(data);
         })
         .catch(() => {
             loader.remove();
