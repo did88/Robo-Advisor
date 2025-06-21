@@ -129,12 +129,17 @@ def index():
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    user_msg = request.json.get('message', '').strip()
+    user_msg = request.json.get("message", "").strip()
     if not user_msg:
-        return jsonify({'answer': '메시지를 입력해주세요.',
-                        'per': None,
-                        'roe': None,
-                        'debt_ratio': None})
+        return jsonify(
+            {
+                "reply": "메시지를 입력해주세요.",
+                "stock_name": None,
+                "per": None,
+                "roe": None,
+                "debt_ratio": None,
+            }
+        )
 
     # 기본 투자 성향 저장 (실제 서비스에서는 사용자가 선택)
     profile = session.get('profile')
@@ -165,14 +170,8 @@ def chat():
         conn.close()
         if row:
             per = row["per"]
-            try:
-                roe = float(str(row["roe"]).replace("%", ""))
-            except ValueError:
-                roe = None
-            try:
-                debt_ratio = float(str(row["debt_ratio"]).replace("%", ""))
-            except ValueError:
-                debt_ratio = None
+            roe = row["roe"]
+            debt_ratio = row["debt_ratio"]
 
     try:
         response = client.chat.completions.create(
@@ -186,8 +185,8 @@ def chat():
 
     return jsonify(
         {
-            "answer": answer,
-            "stock": stock_name,
+            "reply": answer,
+            "stock_name": stock_name,
             "per": per,
             "roe": roe,
             "debt_ratio": debt_ratio,
