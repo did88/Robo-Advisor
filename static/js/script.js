@@ -2,6 +2,39 @@ document.addEventListener('DOMContentLoaded', function() {
     const input = document.getElementById('userInput');
     const sendBtn = document.getElementById('sendBtn');
     const chatHistory = document.getElementById('chatHistory');
+    const chartTitle = document.getElementById('chartTitle');
+    let chart;
+
+    function updateChart(info) {
+        if (!info || !info.stock) {
+            chartTitle.textContent = '종목을 선택하면 지표가 표시됩니다.';
+            if (chart) { chart.destroy(); chart = null; }
+            return;
+        }
+        chartTitle.textContent = info.stock + ' 주요 지표';
+        const ctx = document.getElementById('stockChart').getContext('2d');
+        const values = [info.per, info.roe, info.debt_ratio];
+        const colors = [
+            info.per > 20 ? '#e74c3c' : '#4a76a8',
+            info.roe >= 15 ? '#2ecc71' : '#f1c40f',
+            info.debt_ratio > 50 ? '#e74c3c' : '#2ecc71'
+        ];
+        if (chart) chart.destroy();
+        chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['PER', 'ROE', '부채비율'],
+                datasets: [{
+                    data: values,
+                    backgroundColor: colors
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
 
     function addMessage(text, sender) {
         const div = document.createElement('div');
@@ -36,6 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             loader.remove();
             addMessage(data.reply, 'bot');
+            updateChart(data);
         })
         .catch(() => {
             loader.remove();
