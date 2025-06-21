@@ -1,3 +1,9 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
 body {
     background-color: #121212;
     color: #ffffff;
@@ -6,7 +12,6 @@ body {
     justify-content: center;
     align-items: center;
     height: 100vh;
-    margin: 0;
 }
 
 .app-container {
@@ -15,13 +20,14 @@ body {
     display: grid;
     grid-template-columns: 1fr 300px;
     gap: 20px;
-    height: 90vh;
+    height: 100vh;
+    overflow: hidden;
 }
 
 @media (max-width: 768px) {
     .app-container {
         grid-template-columns: 1fr;
-        height: auto;
+        height: 100vh;
     }
     .info-panel {
         height: 300px;
