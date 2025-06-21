@@ -10,8 +10,10 @@ body {
     font-family: Arial, sans-serif;
     display: flex;
     justify-content: center;
-    align-items: center;
-    height: 100vh;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 20px 0;
+    box-sizing: border-box;
 }
 
 .app-container {
@@ -20,14 +22,14 @@ body {
     display: grid;
     grid-template-columns: 1fr 320px;
     gap: 20px;
-    height: 100vh;
+    height: calc(100vh - 40px);
     overflow: hidden;
 }
 
 @media (max-width: 768px) {
     .app-container {
         grid-template-columns: 1fr;
-        height: 100vh;
+        height: calc(100vh - 40px);
     }
     .info-panel {
         height: 300px;
