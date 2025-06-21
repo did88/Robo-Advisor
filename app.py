@@ -150,6 +150,27 @@ def chat():
         {"role": "user", "content": user_msg},
     ]
 
+    # 기본 지표 값
+    per = roe = debt_ratio = None
+    stock_name = stock_names[0] if stock_names else None
+    if stock_name:
+        conn = get_db_connection()
+        row = conn.execute(
+            "SELECT per, roe, debt_ratio FROM stocks WHERE name = ?",
+            (stock_name,),
+        ).fetchone()
+        conn.close()
+        if row:
+            per = row["per"]
+            try:
+                roe = float(str(row["roe"]).replace("%", ""))
+            except ValueError:
+                roe = None
+            try:
+                debt_ratio = float(str(row["debt_ratio"]).replace("%", ""))
+            except ValueError:
+                debt_ratio = None
+
     try:
         response = client.chat.completions.create(
             model="gpt-4o",
@@ -158,9 +179,17 @@ def chat():
         answer = response.choices[0].message.content.strip()
     except Exception as e:
         print("🔥 GPT API 호출 중 에러:", e)
-        answer = 'API 호출 중 오류가 발생했습니다.'
+        answer = "API 호출 중 오류가 발생했습니다."
 
-    return jsonify({'reply': answer})
+    return jsonify(
+        {
+            "reply": answer,
+            "stock": stock_name,
+            "per": per,
+            "roe": roe,
+            "debt_ratio": debt_ratio,
+        }
+    )
 
 
 if __name__ == '__main__':
