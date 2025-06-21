@@ -6,18 +6,21 @@ document.addEventListener('DOMContentLoaded', function() {
     let chart;
 
     function updateChart(info) {
-        if (!info || !info.stock) {
-            chartTitle.textContent = '종목을 선택하면 지표가 표시됩니다.';
+        if (!info || !info.stock_name) {
+            chartTitle.textContent = '해당 종목의 재무 지표를 찾을 수 없습니다';
             if (chart) { chart.destroy(); chart = null; }
             return;
         }
-        chartTitle.textContent = info.stock + ' 주요 지표';
+        chartTitle.textContent = info.stock_name + ' 주요 지표';
         const ctx = document.getElementById('stockChart').getContext('2d');
-        const values = [info.per, info.roe, info.debt_ratio];
+        const per = parseFloat(info.per);
+        const roe = parseFloat(String(info.roe).replace('%', ''));
+        const debt = parseFloat(String(info.debt_ratio).replace('%', ''));
+        const values = [per, roe, debt];
         const colors = [
-            info.per > 20 ? '#e74c3c' : '#4a76a8',
-            info.roe >= 15 ? '#2ecc71' : '#f1c40f',
-            info.debt_ratio > 50 ? '#e74c3c' : '#2ecc71'
+            per > 20 ? '#e74c3c' : '#4a76a8',
+            roe >= 15 ? '#2ecc71' : '#f1c40f',
+            debt > 50 ? '#e74c3c' : '#2ecc71'
         ];
         if (chart) chart.destroy();
         chart = new Chart(ctx, {
@@ -68,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(res => res.json())
         .then(data => {
             loader.remove();
-            addMessage(data.answer, 'bot');
+            addMessage(data.reply, 'bot');
             updateChart(data);
         })
         .catch(() => {
