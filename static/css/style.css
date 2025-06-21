@@ -1,7 +1,8 @@
 html, body {
     height: 100%;
     margin: 0;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 body {
@@ -12,7 +13,7 @@ body {
     justify-content: center;
     align-items: flex-start;
     min-height: 100vh;
-    padding: 20px 0;
+    padding: 20px 0 60px;
     box-sizing: border-box;
 }
 
