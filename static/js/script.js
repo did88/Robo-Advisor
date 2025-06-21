@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(res => res.json())
         .then(data => {
             loader.remove();
-            addMessage(data.reply, 'bot');
+            addMessage(data.answer, 'bot');
             updateChart(data);
         })
         .catch(() => {
