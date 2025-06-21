@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, session
 from openai import OpenAI
 from dotenv import load_dotenv
 import os
+import sqlite3
 
 # .env 파일에서 OPENAI_API_KEY와 FLASK_SECRET 로드
 load_dotenv()
@@ -10,12 +11,65 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET", "dev-secret")
 
-# 더미 종목 데이터
-STOCK_DATA = {
-    "삼성전자": "재무정보: 시가총액 500조원, PER 10배. 업황: 반도체 수요 회복 기대. 산업군: IT",
-    "LG화학": "재무정보: 매출 30조원, 배터리 성장세. 산업군: 화학/2차전지",
-    "NAVER": "재무정보: 매출 성장 지속, 영업이익률 20%. 산업군: 인터넷 플랫폼",
-}
+DB_PATH = "stocks.db"
+
+
+def init_db():
+    """Create table and seed basic data if empty"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS stocks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            sector TEXT,
+            per REAL,
+            roe TEXT,
+            debt_ratio TEXT,
+            note TEXT
+        )
+        """
+    )
+    cur = conn.execute("SELECT COUNT(*) FROM stocks")
+    if cur.fetchone()[0] == 0:
+        sample = [
+            (
+                "삼성전자",
+                "IT",
+                10,
+                "15%",
+                "20%",
+                "반도체 수요 회복 예상",
+            ),
+            (
+                "LG화학",
+                "화학/2차전지",
+                15,
+                "12%",
+                "30%",
+                "배터리 사업 성장",
+            ),
+            (
+                "NAVER",
+                "인터넷",
+                25,
+                "20%",
+                "10%",
+                "플랫폼 사업 확대",
+            ),
+        ]
+        conn.executemany(
+            "INSERT INTO stocks (name, sector, per, roe, debt_ratio, note) VALUES (?, ?, ?, ?, ?, ?)",
+            sample,
+        )
+        conn.commit()
+    conn.close()
+
+
+init_db()
+conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+conn.row_factory = sqlite3.Row
 
 # 시스템 프롬프트: 전략형 응답 유도
 system_prompt = """
@@ -39,14 +93,26 @@ system_prompt = """
 
 def extract_stock_names(text: str):
     """사용자 입력에서 종목명을 추출"""
-    return [name for name in STOCK_DATA.keys() if name in text]
+    cur = conn.execute("SELECT name FROM stocks")
+    names = [row[0] for row in cur.fetchall()]
+    return [name for name in names if name in text]
 
 
 def build_stock_info(names):
     """종목명에 해당하는 간단한 정보를 문자열로 반환"""
     if not names:
         return "언급된 종목이 없습니다."
-    return "\n".join(f"{name}: {STOCK_DATA[name]}" for name in names)
+    info_lines = []
+    for name in names:
+        row = conn.execute(
+            "SELECT sector, per, roe, debt_ratio, note FROM stocks WHERE name = ?",
+            (name,),
+        ).fetchone()
+        if row:
+            info_lines.append(
+                f"{name} (업종: {row['sector']}, PER: {row['per']}, ROE: {row['roe']}, 부채비율: {row['debt_ratio']}) - {row['note']}"
+            )
+    return "\n".join(info_lines)
 
 
 @app.route('/')
