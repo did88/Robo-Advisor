@@ -68,11 +68,14 @@ def init_db():
 
 
 init_db()
-conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-conn.row_factory = sqlite3.Row
+def get_db_connection():
+    """Return a SQLite connection with row factory configured."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
 
-# 시스템 프롬프트: 전략형 응답 유도
-system_prompt = """
+# 시스템 프롬프트 템플릿: 전략형 응답 유도
+SYSTEM_PROMPT_TEMPLATE = """
 너는 투자 판단을 도와주는 전략형 로보 어드바이저야.
 금융 라이센스 여부는 언급하지 말고, 아래 포맷에 따라 구체적으로 조언해.
 
@@ -93,8 +96,10 @@ system_prompt = """
 
 def extract_stock_names(text: str):
     """사용자 입력에서 종목명을 추출"""
+    conn = get_db_connection()
     cur = conn.execute("SELECT name FROM stocks")
     names = [row[0] for row in cur.fetchall()]
+    conn.close()
     return [name for name in names if name in text]
 
 
@@ -103,6 +108,7 @@ def build_stock_info(names):
     if not names:
         return "언급된 종목이 없습니다."
     info_lines = []
+    conn = get_db_connection()
     for name in names:
         row = conn.execute(
             "SELECT sector, per, roe, debt_ratio, note FROM stocks WHERE name = ?",
@@ -110,8 +116,9 @@ def build_stock_info(names):
         ).fetchone()
         if row:
             info_lines.append(
-                f"{name} (업종: {row['sector']}, PER: {row['per']}, ROE: {row['roe']}, 부채비율: {row['debt_ratio']}) - {row['note']}"
+                f"{name}: 산업군: {row['sector']}, PER: {row['per']}, ROE: {row['roe']}, 부채비율: {row['debt_ratio']}, 참고사항: {row['note']}"
             )
+    conn.close()
     return "\n".join(info_lines)
 
 
@@ -135,14 +142,11 @@ def chat():
     stock_names = extract_stock_names(user_msg)
     stock_info = build_stock_info(stock_names)
 
-    strategy_prompt = (
-        f"사용자 투자 성향: {profile}\n{stock_info}\n"
-        "위 정보를 참고해 분석적이고 전략적인 조언을 제시해."
-    )
+    system_content = f"{SYSTEM_PROMPT_TEMPLATE}\n사용자 투자 성향: {profile}"
 
     messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "system", "content": strategy_prompt},
+        {"role": "system", "content": system_content},
+        {"role": "system", "content": stock_info},
         {"role": "user", "content": user_msg},
     ]
 
