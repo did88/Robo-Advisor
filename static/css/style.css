@@ -2,7 +2,7 @@ html, body {
     height: 100%;
     margin: 0;
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: hidden;
 }
 
 body {
@@ -23,14 +23,14 @@ body {
     display: grid;
     grid-template-columns: 1fr 320px;
     gap: 20px;
-    height: calc(100vh - 40px);
+    height: calc(100vh - 80px);
     overflow: hidden;
 }
 
 @media (max-width: 768px) {
     .app-container {
         grid-template-columns: 1fr;
-        height: calc(100vh - 40px);
+        height: calc(100vh - 80px);
     }
     .info-panel {
         height: 300px;
