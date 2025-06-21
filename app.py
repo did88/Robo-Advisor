@@ -131,7 +131,10 @@ def index():
 def chat():
     user_msg = request.json.get('message', '').strip()
     if not user_msg:
-        return jsonify({'reply': '메시지를 입력해주세요.'})
+        return jsonify({'answer': '메시지를 입력해주세요.',
+                        'per': None,
+                        'roe': None,
+                        'debt_ratio': None})
 
     # 기본 투자 성향 저장 (실제 서비스에서는 사용자가 선택)
     profile = session.get('profile')
@@ -183,7 +186,7 @@ def chat():
 
     return jsonify(
         {
-            "reply": answer,
+            "answer": answer,
             "stock": stock_name,
             "per": per,
             "roe": roe,
