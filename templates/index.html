@@ -7,17 +7,19 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <div class="app-container">
-        <div class="card chat-card">
-            <div id="chatHistory" class="chat-history"></div>
-            <div class="input-area">
-                <input type="text" id="userInput" placeholder="메시지를 입력하세요..." autocomplete="off">
-                <button id="sendBtn">전송</button>
+    <div class="layout">
+        <div class="app-container">
+            <div class="card chat-card">
+                <div id="chatHistory" class="chat-history"></div>
+            </div>
+            <div class="info-panel" id="infoPanel">
+                <h3 id="infoTitle">종목을 선택하면 지표가 표시됩니다.</h3>
+                <div id="metricContainer" class="metric-container"></div>
             </div>
         </div>
-        <div class="info-panel" id="infoPanel">
-            <h3 id="infoTitle">종목을 선택하면 지표가 표시됩니다.</h3>
-            <div id="metricContainer" class="metric-container"></div>
+        <div class="input-area">
+            <input type="text" id="userInput" placeholder="메시지를 입력하세요..." autocomplete="off">
+            <button id="sendBtn">전송</button>
         </div>
     </div>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
