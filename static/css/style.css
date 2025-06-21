@@ -53,6 +53,7 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    height: 100%;
 }
 
 .message {
@@ -138,7 +139,7 @@ body {
 
 #stockChart {
     width: 100% !important;
-    height: 100% !important;
+    height: 250px !important;
 }
 
 @keyframes blink {
