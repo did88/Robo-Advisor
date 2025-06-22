@@ -73,10 +73,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateRightPanel(info) {
         stockDetails.innerHTML = '';
-        if (!info) return;
+        if (!info) {
+            stockDetails.textContent = '종목 정보를 찾을 수 없습니다.';
+            return;
+        }
         let html = '';
+        if (info.name) {
+            html += `<h2>${info.name}</h2>`;
+        }
         if (info.summary) {
-            html += `<p>${info.summary}</p>`;
+            html += `<span class="stock-summary">${info.summary}</span>`;
         }
         if (info.description) {
             html += `<p>${info.description}</p>`;
