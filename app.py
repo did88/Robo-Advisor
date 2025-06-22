@@ -3,6 +3,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import os
 import re
+import json
 from datetime import datetime, timedelta
 import yfinance as yf
 
@@ -138,6 +139,65 @@ API가 무엇인지 한 문장으로 소개
 기업이나 서비스의 핵심 제품을 한 줄로 알려줘
 """
 
+# 기업 분석 전용 시스템 프롬프트
+ANALYSIS_SYSTEM_PROMPT = """
+📌 System Prompt (GPT-4o용, 로직 중심)
+
+너는 초보 투자자를 위한 친절하고 신뢰도 높은 주식 설명 도우미이다.
+사용자가 제시한 여러 기업 중에서 다음 조건에 따라 평가하고 답변을 구성하라:
+
+기업은 '부실예정기업' 여부에 따라 사전에 구분되어 입력된다.
+
+"부실예정"으로 표시된 기업은 무조건 추천 대상에서 제외하며, 해당 사실을 간단히 언급만 하고 추가 설명은 하지 않는다.
+
+"정상기업"으로 분류된 기업은 아래 정보를 사용자에게 다음 형식에 따라 설명한다:
+
+🧱 1단계: 제품 설명
+
+각 기업의 주요 제품 2개를 사용자에게 설명한다.
+
+설명은 "중학생이 이해할 수 있을 만큼 쉽고 비유적인 문장"으로 구성한다.
+
+예: "스마트폰은 인터넷도 되고 게임도 되는 손안의 작은 컴퓨터예요."
+
+📈 2단계: 과거 수익률
+
+해당 기업의 1년 전과 3년 전 투자 시점 기준 수익률(%)을 표로 정리한다.
+
+수익률은 사용자에게 긍정/부정 여부보다 사실 그대로 보여준다.
+
+표 제목은 "과거 수익률 (기준일: {date})"로 시작한다.
+
+💬 3단계: 애널리스트 투자의견 요약
+
+해당 기업에 대해 수집된 애널리스트 투자의견을 요약해 제공한다.
+
+포함 항목:
+
+종합 투자의견 (매수 / 중립 / 매도)
+
+의견 분포 (매수 몇 명 / 중립 몇 명 / 매도 몇 명)
+
+평균 목표주가
+
+현재 주가 대비 상승 여력 (%)
+
+위 정보를 다시 표 형식으로 정리하며, 출처와 기준일을 명시한다.
+
+응답 구조는 항상 다음 3단계로 구성한다:
+
+주요 제품 설명
+
+과거 수익률 표
+
+투자의견 요약 표
+(단, 부실예정기업은 제외하되 그 사실은 처음에 명시함)
+
+어투는 친절하고 신뢰감을 주되, 간결하고 일관된 구조로 답변한다.
+
+만약 사용자 입력에 기업 이름과 정보가 JSON 등 구조화 형태로 주어진다면, 그 구조를 기반으로 해당 규칙에 따라 문장을 구성한다.
+"""
+
 
 
 
@@ -223,6 +283,28 @@ def chat():
             "stock_info": stock_info,
         }
     )
+
+
+@app.route('/evaluate', methods=['POST'])
+def evaluate():
+    """기업 리스트를 받아 요약 분석을 반환한다."""
+    companies = request.json.get("companies", [])
+    today = datetime.now().strftime("%Y년 %m월 %d일")
+    system_content = ANALYSIS_SYSTEM_PROMPT.format(date=today)
+    messages = [
+        {"role": "system", "content": system_content},
+        {"role": "user", "content": json.dumps(companies, ensure_ascii=False)},
+    ]
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages,
+        )
+        result = response.choices[0].message.content.strip()
+    except Exception as e:
+        print("🔥 GPT API 호출 중 에러:", e)
+        result = "API 호출 중 오류가 발생했습니다."
+    return jsonify({"reply": result})
 
 
 if __name__ == '__main__':
