@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatHistory = document.getElementById('chatHistory');
     const infoTitle = document.getElementById('infoTitle');
     const metricContainer = document.getElementById('metricContainer');
+    const stockInfo = document.getElementById('stock-info');
 
     function interpret(metric, value) {
         let val = parseFloat(String(value).replace(/[^0-9.-]/g, ''));
@@ -69,6 +70,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function updateRightPanel(info) {
+        stockInfo.innerHTML = '';
+        if (!info) return;
+        let html = '';
+        if (info.name) {
+            html += `<h3>${info.name}</h3>`;
+        }
+        if (info.summary) {
+            html += `<p>${info.summary}</p>`;
+        }
+        if (info.description) {
+            html += `<p>${info.description}</p>`;
+        }
+        if (info.products && info.products.length) {
+            html += '<ul>' + info.products.map(p => `<li>${p}</li>`).join('') + '</ul>';
+        }
+        stockInfo.innerHTML = html;
+    }
+
     function addMessage(text, sender) {
         const div = document.createElement('div');
         div.className = 'message ' + sender;
@@ -106,6 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 addMessage(`주요 제품: ${data.main_products}`, 'bot');
             }
             updateMetrics(data);
+            updateRightPanel(data.stock_info || null);
         })
         .catch(() => {
             loader.remove();
