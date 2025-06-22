@@ -33,8 +33,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 else if (!isNaN(val) && val >= 50) { status = 'neutral'; comment = '중간'; }
                 else { status = 'bad'; comment = '소형'; }
                 break;
+            case 'return_1y':
+            case 'return_3y':
+                if (val > 0) { status = 'good'; comment = '상승'; }
+                else if (val === 0) { status = 'neutral'; comment = '보합'; }
+                else { status = 'bad'; comment = '하락'; }
+                break;
         }
         return { comment, status };
+    }
+
+    function formatNumber(val) {
+        const num = parseFloat(val);
+        if (isNaN(num)) return val;
+        return num.toLocaleString();
     }
 
     function updateMetrics(info) {
@@ -50,14 +62,16 @@ document.addEventListener('DOMContentLoaded', () => {
             { key: 'debt_ratio', label: '부채비율', icon: '🏦' },
             { key: 'sales', label: '매출액', icon: '💰' },
             { key: 'market_cap', label: '시가총액', icon: '🏢' },
-            { key: 'main_products', label: '주요 제품', icon: '📦' },
             { key: 'return_1y', label: '1년 수익률', icon: '📈' },
             { key: 'return_3y', label: '3년 수익률', icon: '📈' },
         ];
         metrics.forEach(m => {
-            const value = info[m.key];
+            let value = info[m.key];
             if (value == null) return;
             let displayValue = value;
+            if (['sales','market_cap'].includes(m.key)) {
+                displayValue = formatNumber(value);
+            }
             if (['return_1y','return_3y'].includes(m.key)) {
                 displayValue = value + '%';
             }
@@ -74,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateRightPanel(info) {
         stockDetails.innerHTML = '';
         if (!info) {
-            stockDetails.textContent = '종목 정보를 찾을 수 없습니다.';
+            stockDetails.textContent = '기업 정보를 찾을 수 없습니다.';
             return;
         }
         let html = '';
@@ -88,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
             html += `<p>${info.description}</p>`;
         }
         if (info.products && info.products.length) {
-            html += '<ul>' + info.products.map(p => `<li>${p}</li>`).join('') + '</ul>';
+            html += '<h4>주요 제품</h4><ul>' + info.products.map(p => `<li>${p}</li>`).join('') + '</ul>';
         }
         stockDetails.innerHTML = html;
     }
