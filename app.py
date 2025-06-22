@@ -2,7 +2,9 @@ from flask import Flask, render_template, request, jsonify, session
 from openai import OpenAI
 from dotenv import load_dotenv
 import os
-import sqlite3
+import re
+from datetime import datetime, timedelta
+import yfinance as yf
 
 # .env 파일에서 OPENAI_API_KEY와 FLASK_SECRET 로드
 load_dotenv()
@@ -11,96 +13,71 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET", "dev-secret")
 
-DB_PATH = "stocks.db"
+
+# 매핑 예시: 일부 한글 종목명을 티커로 변환
+NAME_TO_TICKER = {
+    "삼성전자": "005930.KS",
+    "LG화학": "051910.KS",
+    "NAVER": "035420.KS",
+}
 
 
-def init_db():
-    """Create table and seed basic data if empty."""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS stocks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL UNIQUE,
-            sector TEXT,
-            per REAL,
-            roe TEXT,
-            debt_ratio TEXT,
-            sales TEXT,
-            market_cap TEXT,
-            risk_level TEXT,
-            main_products TEXT,
-            max_return_1y REAL,
-            max_loss_1y REAL,
-            max_return_3y REAL,
-            max_loss_3y REAL
-        )
-        """
-    )
-    cur = conn.execute("SELECT COUNT(*) FROM stocks")
-    if cur.fetchone()[0] == 0:
-        sample = [
-            (
-                "삼성전자",
-                "반도체",
-                10.5,
-                "15%",
-                "40%",
-                "280조원",
-                "500조원",
-                "낮음",
-                "스마트폰, 반도체",
-                45.0,
-                -22.0,
-                150.0,
-                -45.0,
-            ),
-            (
-                "LG화학",
-                "화학/2차전지",
-                15.2,
-                "12%",
-                "30%",
-                "50조원",
-                "70조원",
-                "중간",
-                "배터리, 석유화학",
-                40.0,
-                -18.0,
-                120.0,
-                -35.0,
-            ),
-            (
-                "NAVER",
-                "인터넷",
-                25.3,
-                "20%",
-                "10%",
-                "8조원",
-                "40조원",
-                "높음",
-                "포털, 클라우드",
-                60.0,
-                -30.0,
-                200.0,
-                -50.0,
-            ),
-        ]
-        conn.executemany(
-            "INSERT INTO stocks (name, sector, per, roe, debt_ratio, sales, market_cap, risk_level, main_products, max_return_1y, max_loss_1y, max_return_3y, max_loss_3y) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            sample,
-        )
-        conn.commit()
-    conn.close()
+def extract_ticker(text: str):
+    """사용자 입력에서 티커를 추출하거나 한글 종목명을 매핑"""
+    for name, ticker in NAME_TO_TICKER.items():
+        if name in text:
+            return ticker, name
+    m = re.search(r"[A-Za-z.]{2,10}", text)
+    if m:
+        return m.group(0).upper(), None
+    return None, None
 
 
-init_db()
-def get_db_connection():
-    """Return a SQLite connection with row factory configured."""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+def fetch_stock_data(ticker: str):
+    """yfinance로부터 필요한 정보를 조회"""
+    data = {
+        "per": None,
+        "roe": None,
+        "debt_ratio": None,
+        "sales": None,
+        "market_cap": None,
+        "main_products": None,
+        "return_1y": None,
+        "return_3y": None,
+    }
+
+    try:
+        tk = yf.Ticker(ticker)
+        info = tk.info
+        data["per"] = info.get("trailingPE")
+        roe = info.get("returnOnEquity")
+        if roe is not None:
+            data["roe"] = round(roe * 100, 2)
+        debt = info.get("totalDebt")
+        equity = info.get("totalStockholderEquity")
+        if debt and equity:
+            data["debt_ratio"] = round(debt / equity * 100, 2)
+        data["sales"] = info.get("totalRevenue")
+        data["market_cap"] = info.get("marketCap")
+        summary = info.get("longBusinessSummary")
+        if summary:
+            data["main_products"] = summary[:200] + "..." if len(summary) > 200 else summary
+
+        hist = yf.download(ticker, period="3y", interval="1d", progress=False)
+        if not hist.empty:
+            current = hist["Adj Close"][-1]
+            date_1y = datetime.now() - timedelta(days=365)
+            date_3y = datetime.now() - timedelta(days=365 * 3)
+            past_1y = hist.loc[:str(date_1y.date())]["Adj Close"]
+            past_3y = hist.loc[:str(date_3y.date())]["Adj Close"]
+            if not past_1y.empty:
+                data["return_1y"] = round((current / past_1y[-1] - 1) * 100, 2)
+            if not past_3y.empty:
+                data["return_3y"] = round((current / past_3y[-1] - 1) * 100, 2)
+    except Exception as e:
+        print("yfinance error", e)
+
+    return data
 
 # 시스템 프롬프트 템플릿: 전략형 응답 유도
 SYSTEM_PROMPT_TEMPLATE = """
@@ -119,30 +96,6 @@ API가 무엇인지 한 문장으로 소개
 """
 
 
-def extract_stock_names(text: str):
-    """사용자 입력에서 종목명을 추출"""
-    conn = get_db_connection()
-    cur = conn.execute("SELECT name FROM stocks")
-    names = [row[0] for row in cur.fetchall()]
-    conn.close()
-    return [name for name in names if name in text]
-
-
-def build_stock_info(names):
-    """종목명에 해당하는 간단한 정보를 문자열로 반환"""
-    if not names:
-        return "언급된 종목이 없습니다."
-    info_lines = []
-    conn = get_db_connection()
-    for name in names:
-        row = conn.execute(
-            "SELECT main_products FROM stocks WHERE name = ?",
-            (name,),
-        ).fetchone()
-        if row:
-            info_lines.append(f"{name} 주요 제품: {row['main_products']}")
-    conn.close()
-    return "\n".join(info_lines)
 
 
 @app.route('/')
@@ -163,13 +116,9 @@ def chat():
                 "debt_ratio": None,
                 "sales": None,
                 "market_cap": None,
-                "sector": None,
-                "risk_level": None,
                 "main_products": None,
-                "max_return_1y": None,
-                "max_loss_1y": None,
-                "max_return_3y": None,
-                "max_loss_3y": None,
+                "return_1y": None,
+                "return_3y": None,
             }
         )
 
@@ -179,42 +128,31 @@ def chat():
         profile = '장기/안정형'
         session['profile'] = profile
 
-    stock_names = extract_stock_names(user_msg)
-    stock_info = build_stock_info(stock_names)
+    ticker, stock_name = extract_ticker(user_msg)
+    stock_info = "언급된 종목이 없습니다." if not ticker else None
 
     system_content = f"{SYSTEM_PROMPT_TEMPLATE}\n사용자 투자 성향: {profile}"
 
     messages = [
         {"role": "system", "content": system_content},
-        {"role": "system", "content": stock_info},
         {"role": "user", "content": user_msg},
     ]
 
-    # 기본 지표 값
-    per = roe = debt_ratio = sales = market_cap = sector = risk_level = None
+    per = roe = debt_ratio = sales = market_cap = None
     main_products = None
-    max_return_1y = max_loss_1y = max_return_3y = max_loss_3y = None
-    stock_name = stock_names[0] if stock_names else None
-    if stock_name:
-        conn = get_db_connection()
-        row = conn.execute(
-            "SELECT sector, per, roe, debt_ratio, sales, market_cap, risk_level, main_products, max_return_1y, max_loss_1y, max_return_3y, max_loss_3y FROM stocks WHERE name = ?",
-            (stock_name,),
-        ).fetchone()
-        conn.close()
-        if row:
-            sector = row["sector"]
-            per = row["per"]
-            roe = row["roe"]
-            debt_ratio = row["debt_ratio"]
-            sales = row["sales"]
-            market_cap = row["market_cap"]
-            risk_level = row["risk_level"]
-            main_products = row["main_products"]
-            max_return_1y = row["max_return_1y"]
-            max_loss_1y = row["max_loss_1y"]
-            max_return_3y = row["max_return_3y"]
-            max_loss_3y = row["max_loss_3y"]
+    return_1y = return_3y = None
+    if ticker:
+        data = fetch_stock_data(ticker)
+        per = data["per"]
+        roe = data["roe"]
+        debt_ratio = data["debt_ratio"]
+        sales = data["sales"]
+        market_cap = data["market_cap"]
+        main_products = data["main_products"]
+        return_1y = data["return_1y"]
+        return_3y = data["return_3y"]
+        if main_products:
+            messages.insert(1, {"role": "system", "content": main_products})
 
     try:
         response = client.chat.completions.create(
@@ -235,13 +173,9 @@ def chat():
             "debt_ratio": debt_ratio,
             "sales": sales,
             "market_cap": market_cap,
-            "sector": sector,
-            "risk_level": risk_level,
             "main_products": main_products,
-            "max_return_1y": max_return_1y,
-            "max_loss_1y": max_loss_1y,
-            "max_return_3y": max_return_3y,
-            "max_loss_3y": max_loss_3y,
+            "return_1y": return_1y,
+            "return_3y": return_3y,
         }
     )
 

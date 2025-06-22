@@ -25,11 +25,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 else if (val < 100) { status = 'neutral'; comment = '주의'; }
                 else { status = 'bad'; comment = '위험'; }
                 break;
-            case 'risk_level':
-                if (value === '낮음') { status = 'good'; comment = '안정적'; }
-                else if (value === '중간') { status = 'neutral'; comment = '보통'; }
-                else { status = 'bad'; comment = '높음'; }
-                break;
             case 'sales':
             case 'market_cap':
                 if (!isNaN(val) && val >= 100) { status = 'good'; comment = '대형'; }
@@ -46,25 +41,22 @@ document.addEventListener('DOMContentLoaded', () => {
             infoTitle.textContent = '종목을 선택하면 지표가 표시됩니다.';
             return;
         }
-        infoTitle.textContent = `${info.name} (${info.sector || ''})`;
+        infoTitle.textContent = `${info.name}`;
         const metrics = [
             { key: 'per', label: 'PER', icon: '📈' },
             { key: 'roe', label: 'ROE', icon: '💸' },
             { key: 'debt_ratio', label: '부채비율', icon: '🏦' },
             { key: 'sales', label: '매출액', icon: '💰' },
             { key: 'market_cap', label: '시가총액', icon: '🏢' },
-            { key: 'risk_level', label: '위험도', icon: '⚠️' },
             { key: 'main_products', label: '주요 제품', icon: '📦' },
-            { key: 'max_return_1y', label: '1년 수익률 최고', icon: '📈' },
-            { key: 'max_loss_1y', label: '1년 손실률 최악', icon: '📉' },
-            { key: 'max_return_3y', label: '3년 수익률 최고', icon: '📈' },
-            { key: 'max_loss_3y', label: '3년 손실률 최악', icon: '📉' },
+            { key: 'return_1y', label: '1년 수익률', icon: '📈' },
+            { key: 'return_3y', label: '3년 수익률', icon: '📈' },
         ];
         metrics.forEach(m => {
             const value = info[m.key];
             if (value == null) return;
             let displayValue = value;
-            if (['max_return_1y','max_loss_1y','max_return_3y','max_loss_3y'].includes(m.key)) {
+            if (['return_1y','return_3y'].includes(m.key)) {
                 displayValue = value + '%';
             }
             const { comment, status } = interpret(m.key, value);
