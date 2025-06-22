@@ -83,6 +83,31 @@ body {
     flex: 0 0 320px;
 }
 
+#stock-info {
+    background: #1e1e1e;
+    color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    padding: 20px;
+    flex: 0 0 320px;
+    overflow-y: auto;
+}
+
+#stock-info ul {
+    padding-left: 20px;
+    margin-top: 10px;
+}
+
+#stock-info li {
+    margin-bottom: 4px;
+}
+
+@media (max-width: 768px) {
+    #stock-info {
+        height: 300px;
+    }
+}
+
 .message {
     max-width: 80%;
     padding: 12px 18px;

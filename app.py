@@ -79,6 +79,40 @@ def fetch_stock_data(ticker: str):
 
     return data
 
+
+def build_stock_info(ticker: str):
+    """Return basic company information for the right panel."""
+    if not ticker:
+        return None
+
+    try:
+        tk = yf.Ticker(ticker)
+        info = tk.info
+        name = info.get("longName") or info.get("shortName") or ticker
+        summary = info.get("sector")
+        description = info.get("longBusinessSummary")
+
+        products = []
+        if description:
+            # 간단히 문장 단위로 잘라 처음 몇 개를 제품 설명처럼 사용
+            sentences = re.split(r"[\n\.]+", description)
+            for s in sentences:
+                s = s.strip()
+                if s:
+                    products.append(s)
+                if len(products) >= 3:
+                    break
+
+        return {
+            "name": name,
+            "summary": summary,
+            "description": description,
+            "products": products,
+        }
+    except Exception as e:
+        print("build_stock_info error", e)
+        return None
+
 # 시스템 프롬프트 템플릿: 전략형 응답 유도
 SYSTEM_PROMPT_TEMPLATE = """
 너는 API 사용법을 중학생도 이해할 수 있게 쉽게 설명해 주는 봇이야.
@@ -119,6 +153,7 @@ def chat():
                 "main_products": None,
                 "return_1y": None,
                 "return_3y": None,
+                "stock_info": None,
             }
         )
 
@@ -129,7 +164,7 @@ def chat():
         session['profile'] = profile
 
     ticker, stock_name = extract_ticker(user_msg)
-    stock_info = "언급된 종목이 없습니다." if not ticker else None
+    stock_info = build_stock_info(ticker) if ticker else None
 
     system_content = f"{SYSTEM_PROMPT_TEMPLATE}\n사용자 투자 성향: {profile}"
 
@@ -176,6 +211,7 @@ def chat():
             "main_products": main_products,
             "return_1y": return_1y,
             "return_3y": return_3y,
+            "stock_info": stock_info,
         }
     )
 
