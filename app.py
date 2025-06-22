@@ -14,11 +14,13 @@ app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET", "dev-secret")
 
 
-# 매핑 예시: 일부 한글 종목명을 티커로 변환
+# 한글 종목명을 yfinance용 티커로 매핑 (.KS: 코스피, .KQ: 코스닥)
 NAME_TO_TICKER = {
     "삼성전자": "005930.KS",
+    "네이버": "035420.KQ",
+    "카카오": "035720.KQ",
     "LG화학": "051910.KS",
-    "NAVER": "035420.KS",
+    "NAVER": "035420.KS",  # 영문 입력 대응용
 }
 
 
@@ -27,6 +29,13 @@ def extract_ticker(text: str):
     for name, ticker in NAME_TO_TICKER.items():
         if name in text:
             return ticker, name
+    # 숫자만 입력된 경우(한국 종목 코드) 자동으로 ".KS" 확장자를 붙임
+    m = re.search(r"\b\d{5,6}(?:\.(?:KS|KQ))?\b", text.upper())
+    if m:
+        code = m.group(0).upper()
+        if not code.endswith(('.KS', '.KQ')):
+            code += '.KS'  # 기본값으로 코스피 처리
+        return code, None
     m = re.search(r"[A-Za-z.]{2,10}", text)
     if m:
         return m.group(0).upper(), None
