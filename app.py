@@ -30,6 +30,7 @@ def init_db():
             sales TEXT,
             market_cap TEXT,
             risk_level TEXT,
+            main_products TEXT,
             max_return_1y REAL,
             max_loss_1y REAL,
             max_return_3y REAL,
@@ -49,6 +50,7 @@ def init_db():
                 "280조원",
                 "500조원",
                 "낮음",
+                "스마트폰, 반도체",
                 45.0,
                 -22.0,
                 150.0,
@@ -63,6 +65,7 @@ def init_db():
                 "50조원",
                 "70조원",
                 "중간",
+                "배터리, 석유화학",
                 40.0,
                 -18.0,
                 120.0,
@@ -77,6 +80,7 @@ def init_db():
                 "8조원",
                 "40조원",
                 "높음",
+                "포털, 클라우드",
                 60.0,
                 -30.0,
                 200.0,
@@ -84,7 +88,7 @@ def init_db():
             ),
         ]
         conn.executemany(
-            "INSERT INTO stocks (name, sector, per, roe, debt_ratio, sales, market_cap, risk_level, max_return_1y, max_loss_1y, max_return_3y, max_loss_3y) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO stocks (name, sector, per, roe, debt_ratio, sales, market_cap, risk_level, main_products, max_return_1y, max_loss_1y, max_return_3y, max_loss_3y) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             sample,
         )
         conn.commit()
@@ -136,12 +140,12 @@ def build_stock_info(names):
     conn = get_db_connection()
     for name in names:
         row = conn.execute(
-            "SELECT sector, per, roe, debt_ratio, sales, market_cap, risk_level, max_return_1y, max_loss_1y, max_return_3y, max_loss_3y FROM stocks WHERE name = ?",
+            "SELECT sector, per, roe, debt_ratio, sales, market_cap, risk_level, main_products, max_return_1y, max_loss_1y, max_return_3y, max_loss_3y FROM stocks WHERE name = ?",
             (name,),
         ).fetchone()
         if row:
             info_lines.append(
-                f"{name}: 산업군: {row['sector']}, PER: {row['per']}, ROE: {row['roe']}, 부채비율: {row['debt_ratio']}, 매출액: {row['sales']}, 시가총액: {row['market_cap']}, 위험도: {row['risk_level']}, 1년 최고 수익률: {row['max_return_1y']}%, 1년 최악 손실률: {row['max_loss_1y']}%, 3년 최고 수익률: {row['max_return_3y']}%, 3년 최악 손실률: {row['max_loss_3y']}%"
+                f"{name}: 산업군: {row['sector']}, PER: {row['per']}, ROE: {row['roe']}, 부채비율: {row['debt_ratio']}, 매출액: {row['sales']}, 시가총액: {row['market_cap']}, 위험도: {row['risk_level']}, 주요 제품: {row['main_products']}, 1년 최고 수익률: {row['max_return_1y']}%, 1년 최악 손실률: {row['max_loss_1y']}%, 3년 최고 수익률: {row['max_return_3y']}%, 3년 최악 손실률: {row['max_loss_3y']}%"
             )
     conn.close()
     return "\n".join(info_lines)
@@ -167,6 +171,7 @@ def chat():
                 "market_cap": None,
                 "sector": None,
                 "risk_level": None,
+                "main_products": None,
                 "max_return_1y": None,
                 "max_loss_1y": None,
                 "max_return_3y": None,
@@ -193,12 +198,13 @@ def chat():
 
     # 기본 지표 값
     per = roe = debt_ratio = sales = market_cap = sector = risk_level = None
+    main_products = None
     max_return_1y = max_loss_1y = max_return_3y = max_loss_3y = None
     stock_name = stock_names[0] if stock_names else None
     if stock_name:
         conn = get_db_connection()
         row = conn.execute(
-            "SELECT sector, per, roe, debt_ratio, sales, market_cap, risk_level, max_return_1y, max_loss_1y, max_return_3y, max_loss_3y FROM stocks WHERE name = ?",
+            "SELECT sector, per, roe, debt_ratio, sales, market_cap, risk_level, main_products, max_return_1y, max_loss_1y, max_return_3y, max_loss_3y FROM stocks WHERE name = ?",
             (stock_name,),
         ).fetchone()
         conn.close()
@@ -210,6 +216,7 @@ def chat():
             sales = row["sales"]
             market_cap = row["market_cap"]
             risk_level = row["risk_level"]
+            main_products = row["main_products"]
             max_return_1y = row["max_return_1y"]
             max_loss_1y = row["max_loss_1y"]
             max_return_3y = row["max_return_3y"]
@@ -236,6 +243,7 @@ def chat():
             "market_cap": market_cap,
             "sector": sector,
             "risk_level": risk_level,
+            "main_products": main_products,
             "max_return_1y": max_return_1y,
             "max_loss_1y": max_loss_1y,
             "max_return_3y": max_return_3y,

@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
             { key: 'sales', label: '매출액', icon: '💰' },
             { key: 'market_cap', label: '시가총액', icon: '🏢' },
             { key: 'risk_level', label: '위험도', icon: '⚠️' },
+            { key: 'main_products', label: '주요 제품', icon: '📦' },
             { key: 'max_return_1y', label: '1년 수익률 최고', icon: '📈' },
             { key: 'max_loss_1y', label: '1년 손실률 최악', icon: '📉' },
             { key: 'max_return_3y', label: '3년 수익률 최고', icon: '📈' },
@@ -62,11 +63,15 @@ document.addEventListener('DOMContentLoaded', () => {
         metrics.forEach(m => {
             const value = info[m.key];
             if (value == null) return;
+            let displayValue = value;
+            if (['max_return_1y','max_loss_1y','max_return_3y','max_loss_3y'].includes(m.key)) {
+                displayValue = value + '%';
+            }
             const { comment, status } = interpret(m.key, value);
             const card = document.createElement('div');
             card.className = `metric-card ${status}`;
             card.innerHTML = `<div class="metric-title">${m.icon} ${m.label}</div>` +
-                             `<div class="metric-value">${value}</div>` +
+                             `<div class="metric-value">${displayValue}</div>` +
                              `<div class="metric-comment">${comment}</div>`;
             metricContainer.appendChild(card);
         });
