@@ -54,6 +54,10 @@ document.addEventListener('DOMContentLoaded', () => {
             { key: 'sales', label: '매출액', icon: '💰' },
             { key: 'market_cap', label: '시가총액', icon: '🏢' },
             { key: 'risk_level', label: '위험도', icon: '⚠️' },
+            { key: 'max_return_1y', label: '1년 수익률 최고', icon: '📈' },
+            { key: 'max_loss_1y', label: '1년 손실률 최악', icon: '📉' },
+            { key: 'max_return_3y', label: '3년 수익률 최고', icon: '📈' },
+            { key: 'max_loss_3y', label: '3년 손실률 최악', icon: '📉' },
         ];
         metrics.forEach(m => {
             const value = info[m.key];
