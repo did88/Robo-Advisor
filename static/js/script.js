@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const infoTitle = document.getElementById('infoTitle');
     const metricContainer = document.getElementById('metricContainer');
     const stockInfo = document.getElementById('stock-info');
+    const stockDetails = document.getElementById('stockDetails');
 
     function interpret(metric, value) {
         let val = parseFloat(String(value).replace(/[^0-9.-]/g, ''));
@@ -71,12 +72,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateRightPanel(info) {
-        stockInfo.innerHTML = '';
+        stockDetails.innerHTML = '';
         if (!info) return;
         let html = '';
-        if (info.name) {
-            html += `<h3>${info.name}</h3>`;
-        }
         if (info.summary) {
             html += `<p>${info.summary}</p>`;
         }
@@ -86,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (info.products && info.products.length) {
             html += '<ul>' + info.products.map(p => `<li>${p}</li>`).join('') + '</ul>';
         }
-        stockInfo.innerHTML = html;
+        stockDetails.innerHTML = html;
     }
 
     function addMessage(text, sender) {

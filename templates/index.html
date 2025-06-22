@@ -7,20 +7,20 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <div class="layout">
-        <div class="main-content">
-            <div class="chat-area chat-card">
+    <div class="wrapper">
+        <div class="chat-panel">
+            <div class="chat-area">
                 <div id="chatHistory" class="chat-history"></div>
+                <div class="input-area">
+                    <textarea id="userInput" placeholder="메시지를 입력하세요..." autocomplete="off"></textarea>
+                    <button id="sendBtn">전송</button>
+                </div>
             </div>
-            <div class="info-panel" id="infoPanel">
-                <h3 id="infoTitle">종목을 선택하면 지표가 표시됩니다.</h3>
-                <div id="metricContainer" class="metric-container"></div>
-            </div>
-            <div id="stock-info"></div>
         </div>
-        <div class="input-area">
-            <input type="text" id="userInput" placeholder="메시지를 입력하세요..." autocomplete="off">
-            <button id="sendBtn">전송</button>
+        <div id="stock-info" class="stock-panel">
+            <h3 id="infoTitle">종목을 선택하면 지표가 표시됩니다.</h3>
+            <div id="metricContainer" class="metric-container"></div>
+            <div id="stockDetails"></div>
         </div>
     </div>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
