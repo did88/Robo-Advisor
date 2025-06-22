@@ -104,22 +104,18 @@ def get_db_connection():
 
 # 시스템 프롬프트 템플릿: 전략형 응답 유도
 SYSTEM_PROMPT_TEMPLATE = """
-너는 투자 판단을 도와주는 전략형 로보 어드바이저야.
-금융 라이센스 여부는 언급하지 말고, 아래 포맷에 따라 구체적으로 조언해.
+너는 API 사용법을 중학생도 이해할 수 있게 쉽게 설명해 주는 봇이야.
+투자 리스크나 투자 판단에 대한 내용은 언급하지 마.
 
-다음 형식을 반드시 지켜:
+아래 형식을 따라 대답해:
 📌 [요약]
-한 문장으로 투자 매력도 또는 주의점 제시
+API가 무엇인지 한 문장으로 소개
 
-📊 [분석 근거]
-재무지표, 업황, 기업전략 등 2~3개로 구성
+📖 [상세 설명]
+중학생 눈높이에 맞춰 간단하게 설명
 
-⚠️ [리스크]
-투자 시 주의할 요소 1~2개
-
-💡 [투자 판단]
-어떤 투자자에게 적합한지 또는 어떤 전략에 잘 맞는지
-가능한 한 다양한 시나리오와 예상 수익/손실률 등을 함께 제공하며, 데이터 기반의 유연한 조언을 줄 것.
+📦 [주요 제품]
+기업이나 서비스의 핵심 제품을 한 줄로 알려줘
 """
 
 
@@ -140,13 +136,11 @@ def build_stock_info(names):
     conn = get_db_connection()
     for name in names:
         row = conn.execute(
-            "SELECT sector, per, roe, debt_ratio, sales, market_cap, risk_level, main_products, max_return_1y, max_loss_1y, max_return_3y, max_loss_3y FROM stocks WHERE name = ?",
+            "SELECT main_products FROM stocks WHERE name = ?",
             (name,),
         ).fetchone()
         if row:
-            info_lines.append(
-                f"{name}: 산업군: {row['sector']}, PER: {row['per']}, ROE: {row['roe']}, 부채비율: {row['debt_ratio']}, 매출액: {row['sales']}, 시가총액: {row['market_cap']}, 위험도: {row['risk_level']}, 주요 제품: {row['main_products']}, 1년 최고 수익률: {row['max_return_1y']}%, 1년 최악 손실률: {row['max_loss_1y']}%, 3년 최고 수익률: {row['max_return_3y']}%, 3년 최악 손실률: {row['max_loss_3y']}%"
-            )
+            info_lines.append(f"{name} 주요 제품: {row['main_products']}")
     conn.close()
     return "\n".join(info_lines)
 

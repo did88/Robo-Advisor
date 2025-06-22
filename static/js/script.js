@@ -110,6 +110,9 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(data => {
             loader.remove();
             addMessage(data.reply, 'bot');
+            if (data.main_products) {
+                addMessage(`주요 제품: ${data.main_products}`, 'bot');
+            }
             updateMetrics(data);
         })
         .catch(() => {
